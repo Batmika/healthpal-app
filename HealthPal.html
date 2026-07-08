@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthPal — Your Friendly Health Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --teal:#3D8F86;
+    --teal-dark:#2B6E67;
+    --coral:#B5615E;
+    --yellow:#B4923A;
+    --bg:#101012;
+    --surface:#19191C;
+    --surface-alt:#232327;
+    --border:#2E2E33;
+    --ink:#E7E7EA;
+    --muted:#95959E;
+    --card:#19191C;
+    --good:#4C9A6A;
+    --warn:#C99248;
+    --bad:#B85B54;
+    --radius:18px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Nunito', sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    background:linear-gradient(135deg, #1B1B1E, #101012);
+    border-bottom:1px solid var(--border);
+    color:var(--ink);
+    padding:20px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  header .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:800;
+    font-size:1.4rem;
+    color:var(--ink);
+  }
+  header .brand .sub{
+    font-weight:600;
+    font-size:0.8rem;
+    opacity:0.6;
+    display:block;
+  }
+  header .greet{
+    font-weight:600;
+    font-size:0.95rem;
+    text-align:right;
+    color:var(--muted);
+  }
+  nav{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    background:var(--surface);
+    padding:8px 12px;
+    border-bottom:1px solid var(--border);
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+  nav button{
+    border:none;
+    background:transparent;
+    padding:10px 16px;
+    border-radius:999px;
+    font-family:inherit;
+    font-weight:700;
+    font-size:0.88rem;
+    color:var(--muted);
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all .15s ease;
+  }
+  nav button:hover{ background:var(--surface-alt); color:var(--ink); }
+  nav button.active{ background:var(--teal); color:#fff; }
+  main{
+    max-width:980px;
+    margin:0 auto;
+    padding:20px 16px 60px;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.25);
+    margin-bottom:16px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+    gap:14px;
+  }
+  h1,h2,h3{ margin-top:0; color:var(--ink); }
+  h2.section-title{
+    font-size:1.15rem;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .pill{
+    display:inline-block;
+    padding:4px 12px;
+    border-radius:999px;
+    font-size:0.78rem;
+    font-weight:700;
+  }
+  .pill.good{ background:rgba(76,154,106,0.16); color:#7BC190; }
+  .pill.warn{ background:rgba(201,146,72,0.16); color:#E0AD68; }
+  .pill.bad{ background:rgba(184,91,84,0.18); color:#E08A83; }
+  .pill.neutral{ background:rgba(149,149,158,0.16); color:var(--muted); }
+  button.primary{
+    background:var(--coral);
+    color:#fff;
+    border:none;
+    padding:11px 20px;
+    border-radius:12px;
+    font-family:inherit;
+    font-weight:700;
+    font-size:0.92rem;
+    cursor:pointer;
+    transition:transform .1s ease, opacity .1s ease;
+  }
+  button.primary:hover{ opacity:0.88; }
+  button.primary:active{ transform:scale(0.98); }
+  button.secondary{
+    background:var(--surface-alt);
+    color:var(--ink);
+    border:1px solid var(--border);
+    padding:10px 18px;
+    border-radius:12px;
+    font-family:inherit;
+    font-weight:700;
+    font-size:0.88rem;
+    cursor:pointer;
+  }
+  button.secondary:hover{ background:#2A2A2F; }
+  button.icon-btn{
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-size:1rem;
+    color:var(--muted);
+    padding:4px 8px;
+  }
+  button.icon-btn:hover{ color:var(--bad); }
+  input, select, textarea{
+    font-family:inherit;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    font-size:0.92rem;
+    width:100%;
+    background:var(--surface-alt);
+    color:var(--ink);
+  }
+  input::placeholder, textarea::placeholder{ color:#6C6C75; }
+  input:focus, select:focus, textarea:focus{
+    outline:none;
+    border-color:var(--teal);
+  }
+  label{
+    font-weight:700;
+    font-size:0.82rem;
+    color:var(--muted);
+    display:block;
+    margin-bottom:5px;
+  }
+  .field{ margin-bottom:12px; }
+  .row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .row > .field{ flex:1; min-width:140px; }
+  .form-card{ background:#151517; border:1.5px dashed var(--border); }
+  .empty{
+    text-align:center;
+    color:var(--muted);
+    padding:24px 10px;
+    font-size:0.92rem;
+  }
+  .list-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    padding:12px 0;
+    border-bottom:1px solid var(--border);
+    gap:10px;
+  }
+  .list-item:last-child{ border-bottom:none; }
+  .list-item .meta{ font-size:0.78rem; color:var(--muted); margin-top:3px; }
+  .checkbox-group label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:8px;
+    cursor:pointer;
+  }
+  .checkbox-group input{ width:auto; }
+  .badge-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .mood-picker{ display:flex; gap:8px; }
+  .mood-picker button{
+    font-size:1.6rem;
+    background:var(--surface-alt);
+    border:2px solid transparent;
+    border-radius:12px;
+    padding:8px 10px;
+    cursor:pointer;
+  }
+  .mood-picker button.selected{ border-color:var(--teal); background:rgba(61,143,134,0.18); }
+  .progress-bar{
+    background:var(--surface-alt);
+    border-radius:999px;
+    height:14px;
+    overflow:hidden;
+    margin-top:6px;
+  }
+  .progress-bar .fill{
+    background:linear-gradient(90deg, var(--teal), var(--teal-dark));
+    height:100%;
+    border-radius:999px;
+    transition:width .3s ease;
+  }
+  .tip-box{
+    border-radius:14px;
+    padding:14px 16px;
+    margin-top:12px;
+    font-size:0.92rem;
+    line-height:1.5;
+  }
+  .tip-box.good{ background:rgba(76,154,106,0.14); color:#8ECBA0; }
+  .tip-box.warn{ background:rgba(201,146,72,0.14); color:#E0AD68; }
+  .tip-box.bad{ background:rgba(184,91,84,0.16); color:#E08A83; }
+  .tip-box.neutral{ background:var(--surface-alt); color:var(--ink); }
+  .muted-text{ color:var(--muted); font-size:0.85rem; }
+  .flex-between{ display:flex; justify-content:space-between; align-items:center; }
+  .small-btn-row{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  table{ width:100%; border-collapse:collapse; font-size:0.88rem; }
+  table th, table td{ text-align:left; padding:8px 6px; border-bottom:1px solid var(--border); }
+  table th{ color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em; }
+  .food-photo-thumb{ width:52px; height:52px; border-radius:10px; object-fit:cover; }
+  .banner{
+    background:rgba(201,146,72,0.14);
+    border:1px solid rgba(201,146,72,0.3);
+    border-radius:14px;
+    padding:12px 16px;
+    font-size:0.88rem;
+    color:#E0AD68;
+    margin-bottom:14px;
+  }
+  footer.app-footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:0.8rem;
+    padding:20px;
+  }
+  /* Calendar */
+  .cal-grid{
+    display:grid;
+    grid-template-columns:repeat(7, 1fr);
+    gap:6px;
+  }
+  .cal-dow{
+    text-align:center;
+    font-size:0.72rem;
+    font-weight:700;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    padding-bottom:4px;
+  }
+  .cal-day{
+    background:var(--surface-alt);
+    border:1px solid var(--border);
+    border-radius:10px;
+    min-height:64px;
+    padding:6px;
+    cursor:pointer;
+    font-size:0.8rem;
+    color:var(--ink);
+  }
+  .cal-day.empty-day{ background:transparent; border:none; cursor:default; }
+  .cal-day:hover{ border-color:var(--teal); }
+  .cal-day.today{ border-color:var(--teal); box-shadow:0 0 0 1px var(--teal) inset; }
+  .cal-day .cal-daynum{ font-weight:700; margin-bottom:4px; }
+  .cal-dots{ display:flex; gap:3px; flex-wrap:wrap; }
+  .cal-dot{ width:6px; height:6px; border-radius:50%; }
+  .cal-dot.med{ background:var(--teal); }
+  .cal-dot.appt{ background:var(--coral); }
+  .cal-dot.reading{ background:var(--warn); }
+  .cal-dot.food{ background:#7BA6C9; }
+  @media print{
+    header, nav, .no-print{ display:none !important; }
+    body{ background:#fff !important; color:#111 !important; }
+    main{ padding:0; }
+    .card{ box-shadow:none; border:1px solid #ccc; background:#fff !important; color:#111 !important; }
+    h1,h2,h3,p,td,th,strong{ color:#111 !important; }
+    table th, table td{ border-bottom:1px solid #ddd; }
+  }
+  .toast{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:var(--surface-alt);
+    border:1px solid var(--border);
+    color:var(--ink);
+    padding:14px 18px;
+    border-radius:12px;
+    font-weight:700;
+    font-size:0.88rem;
+    box-shadow:0 6px 20px rgba(0,0,0,0.4);
+    z-index:999;
+    max-width:280px;
+    animation:slidein .25s ease;
+  }
+  @keyframes slidein{ from{ transform:translateY(20px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    🌿 HealthPal
+    <span class="sub" id="header-sub">your friendly health companion</span>
+  </div>
+  <div class="greet" id="header-greet"></div>
+</header>
+
+<nav id="nav"></nav>
+
+<main id="content"></main>
+
+<footer class="app-footer">Made for you 💚 All your data stays on this device, in this browser.</footer>
+
+<script>
+/* ---------------- Data layer ---------------- */
+const STORAGE_KEY = 'healthpal_data_v1';
+
+function defaultData(){
+  return {
+    profile:{ name:'', conditions:[], otherConditions:'', notes:'', waterGoal:8, onboarded:false },
+    markers:[], // {id,name,unit,low,high}
+    readings:[], // {id,markerId,value,date,note}
+    meds:[], // {id,name,dosage,times:[],notes,active}
+    foodLogs:[], // {id,date,time,mealType,description,photo,verdict,tip,tags}
+    checkins:[], // {id,date,mood,energy,symptoms}
+    exercise:[], // {id,date,type,duration}
+    water:[], // {id,date,glasses}
+    periods:[], // {id,startDate,endDate,symptoms}
+    appointments:[], // {id,title,date,time,notes}
+    documents:[] // {id,name,category,date,notes,fileName,fileType,dataUrl}
+  };
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultData();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultData(), parsed);
+  }catch(e){
+    console.warn('Could not load saved data, starting fresh.', e);
+    return defaultData();
+  }
+}
+
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let data = loadData();
+
+function uid(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+}
+
+function escapeHtml(str){
+  if(str === undefined || str === null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function nowTimeStr(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function fmtDate(d){
+  if(!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
+}
+
+function toast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3200);
+}
+
+/* ---------------- Calendar / .ics export (for Apple Calendar / iCloud) ---------------- */
+function pad2(n){ return String(n).padStart(2,'0'); }
+
+function icsDateTime(dateStr, timeStr){
+  const datePart = dateStr.replace(/-/g,'');
+  const [h,m] = (timeStr||'09:00').split(':');
+  return `${datePart}T${pad2(h)}${pad2(m)}00`;
+}
+
+function icsNow(){
+  const d = new Date();
+  return d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+'T'+pad2(d.getHours())+pad2(d.getMinutes())+pad2(d.getSeconds());
+}
+
+function escapeICS(str){
+  return String(str||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+}
+
+function addMinutes(dateStr, timeStr, minutes){
+  const dt = new Date(`${dateStr}T${timeStr||'09:00'}:00`);
+  dt.setMinutes(dt.getMinutes()+minutes);
+  return icsDateTime(dateStr, pad2(dt.getHours())+':'+pad2(dt.getMinutes()));
+}
+
+function buildICS(events){
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//HealthPal//EN','CALSCALE:GREGORIAN'];
+  events.forEach(ev=>{
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:'+ev.uid);
+    lines.push('DTSTAMP:'+icsNow());
+    lines.push('DTSTART:'+ev.start);
+    if(ev.end) lines.push('DTEND:'+ev.end);
+    if(ev.rrule) lines.push('RRULE:'+ev.rrule);
+    lines.push('SUMMARY:'+escapeICS(ev.summary));
+    if(ev.description) lines.push('DESCRIPTION:'+escapeICS(ev.description));
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function downloadICS(filename, content){
+  const blob = new Blob([content], {type:'text/calendar'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportMedsICS(){
+  const events = [];
+  data.meds.filter(m=>m.active!==false).forEach(m=>{
+    (m.times||[]).forEach((t,idx)=>{
+      events.push({
+        uid:`med-${m.id}-${idx}@healthpal`,
+        start: icsDateTime(todayStr(), t),
+        end: addMinutes(todayStr(), t, 15),
+        rrule:'FREQ=DAILY',
+        summary:`Take ${m.name}${m.dosage? ' ('+m.dosage+')':''}`,
+        description:m.notes||''
+      });
+    });
+  });
+  if(events.length===0){ toast('No medications with times to export yet.'); return; }
+  downloadICS('healthpal-medications.ics', buildICS(events));
+  toast('Calendar file downloaded — open it to add these to Apple Calendar.');
+}
+
+function exportAppointmentICS(appt){
+  const ics = buildICS([{
+    uid:`appt-${appt.id}@healthpal`,
+    start: icsDateTime(appt.date, appt.time),
+    end: addMinutes(appt.date, appt.time, 30),
+    summary:appt.title,
+    description:appt.notes||''
+  }]);
+  downloadICS(`healthpal-${appt.title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()||'appointment'}.ics`, ics);
+}
+
+function exportAllAppointmentsICS(){
+  if(data.appointments.length===0){ toast('No appointments to export yet.'); return; }
+  const events = data.appointments.map(a=>({
+    uid:`appt-${a.id}@healthpal`,
+    start: icsDateTime(a.date, a.time),
+    end: addMinutes(a.date, a.time, 30),
+    summary:a.title,
+    description:a.notes||''
+  }));
+  downloadICS('healthpal-appointments.ics', buildICS(events));
+  toast('Calendar file downloaded — open it to add these to Apple Calendar.');
+}
+
+/* ---------------- Condition keyword rules (for food recommendations) ---------------- */
+const CONDITION_RULES = {
+  blood_sugar:{
+    label:'Blood sugar / pre-diabetes risk',
+    risky:['sugar','soda','cola','candy','chocolate bar','cake','cookie','pastry','donut','doughnut','white bread','white rice','fries','french fries','juice','ice cream','syrup','sweetened','dessert','milkshake','energy drink','sweet tea'],
+    good:['vegetable','vegetables','salad','chicken breast','fish','egg','eggs','nuts','beans','lentil','lentils','whole grain','whole-grain','oatmeal','broccoli','spinach','avocado','greek yogurt','quinoa','tofu','berries']
+  },
+  blood_pressure:{
+    label:'High blood pressure',
+    risky:['salt','salty','sodium','bacon','processed','canned soup','chips','pickles','soy sauce','fast food','deli meat','instant noodles'],
+    good:['banana','leafy greens','garlic','beets','oats','low-sodium','low sodium','spinach','sweet potato','yogurt']
+  },
+  cholesterol:{
+    label:'High cholesterol',
+    risky:['fried','butter','red meat','cheese','cream','fatty','sausage','bacon','pastry','fast food'],
+    good:['oats','nuts','olive oil','fish','fiber','avocado','beans','salmon']
+  }
+};
+
+function analyzeFood(description, conditions, otherConditions){
+  const text = description.toLowerCase();
+  let riskyHits = [];
+  let goodHits = [];
+  let relevantConditions = conditions.length ? conditions : Object.keys(CONDITION_RULES);
+  relevantConditions.forEach(c=>{
+    const rule = CONDITION_RULES[c];
+    if(!rule) return;
+    rule.risky.forEach(k=>{ if(text.includes(k) && !riskyHits.includes(k)) riskyHits.push(k); });
+    rule.good.forEach(k=>{ if(text.includes(k) && !goodHits.includes(k)) goodHits.push(k); });
+  });
+
+  const otherNote = (otherConditions && otherConditions.trim())
+    ? ` (I don't have specific food rules for "${otherConditions.trim()}" yet, but it's noted on your profile in case it's useful context for you or your doctor.)`
+    : '';
+
+  if(riskyHits.length === 0 && goodHits.length === 0){
+    return {
+      verdict:'neutral',
+      label:"Logged!",
+      tip:`Thanks for logging that! I couldn't spot specific red flags, but I also don't have enough detail to be sure. Try adding a bit more description (e.g. portion size, how it was cooked) for a sharper tip next time.${otherNote}`,
+      tags:[]
+    };
+  }
+  if(riskyHits.length > 0 && goodHits.length === 0){
+    return {
+      verdict:'bad',
+      label:'Might want to watch this one',
+      tip:`This has some things (${riskyHits.slice(0,3).join(', ')}) that can be tougher on your ${describeConditions(relevantConditions)}. No guilt at all — just something to keep an eye on. Maybe pair it with veggies or a smaller portion next time.${otherNote}`,
+      tags:riskyHits
+    };
+  }
+  if(goodHits.length > 0 && riskyHits.length === 0){
+    return {
+      verdict:'good',
+      label:'Great choice',
+      tip:`Nice pick — ${goodHits.slice(0,3).join(', ')} tends to be friendly for your ${describeConditions(relevantConditions)}. Keep it up!${otherNote}`,
+      tags:goodHits
+    };
+  }
+  return {
+    verdict:'warn',
+    label:'Okay in moderation',
+    tip:`Mixed bag: ${goodHits.slice(0,2).join(', ')} are solid choices, but watch out for ${riskyHits.slice(0,2).join(', ')}. Balance is key — maybe smaller portion of the trickier part.${otherNote}`,
+    tags:[...riskyHits,...goodHits]
+  };
+}
+
+function describeConditions(conditions){
+  const labels = conditions.map(c=> CONDITION_RULES[c] ? CONDITION_RULES[c].label.toLowerCase() : c);
+  return labels.length ? labels.join(' & ') : 'overall health';
+}
+
+/* ---------------- Marker status helper ---------------- */
+function markerStatus(marker, value){
+  if(marker.low === '' && marker.high === '') return 'neutral';
+  const low = marker.low === '' ? -Infinity : parseFloat(marker.low);
+  const high = marker.high === '' ? Infinity : parseFloat(marker.high);
+  if(value < low || value > high) return 'bad';
+  const range = (high===Infinity||low===-Infinity) ? null : (high-low);
+  if(range){
+    const buffer = range * 0.1;
+    if(value < low+buffer || value > high-buffer) return 'warn';
+  }
+  return 'good';
+}
+
+/* ---------------- Navigation ---------------- */
+const TABS = [
+  {id:'dashboard', label:'Home', icon:'🏠'},
+  {id:'markers', label:'Blood Markers', icon:'📈'},
+  {id:'meds', label:'Medications', icon:'💊'},
+  {id:'food', label:'Food', icon:'🍽️'},
+  {id:'checkins', label:'Check-in', icon:'💛'},
+  {id:'activity', label:'Water & Move', icon:'🏃'},
+  {id:'period', label:'Cycle', icon:'🌙'},
+  {id:'calendar', label:'Calendar', icon:'🗓️'},
+  {id:'documents', label:'Documents', icon:'📎'},
+  {id:'report', label:'Doctor Report', icon:'📋'},
+  {id:'settings', label:'Settings', icon:'⚙️'}
+];
+
+let activeTab = 'dashboard';
+
+function renderNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = TABS.map(t=>`<button data-tab="${t.id}" class="${t.id===activeTab?'active':''}">${t.icon} ${t.label}</button>`).join('');
+  nav.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ activeTab = btn.dataset.tab; renderNav(); renderContent(); });
+  });
+}
+
+function renderHeaderGreeting(){
+  const el = document.getElementById('header-greet');
+  const name = data.profile.name ? data.profile.name : 'friend';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  el.textContent = `${greeting}, ${name}!`;
+}
+
+function renderContent(){
+  const c = document.getElementById('content');
+  if(!data.profile.onboarded && activeTab !== 'settings'){
+    renderOnboarding(c);
+    return;
+  }
+  switch(activeTab){
+    case 'dashboard': renderDashboard(c); break;
+    case 'markers': renderMarkers(c); break;
+    case 'meds': renderMeds(c); break;
+    case 'food': renderFood(c); break;
+    case 'checkins': renderCheckins(c); break;
+    case 'activity': renderActivity(c); break;
+    case 'period': renderPeriod(c); break;
+    case 'calendar': renderCalendar(c); break;
+    case 'documents': renderDocuments(c); break;
+    case 'report': renderReport(c); break;
+    case 'settings': renderSettings(c); break;
+  }
+  renderHeaderGreeting();
+}
+
+/* ---------------- Onboarding ---------------- */
+function renderOnboarding(c){
+  c.innerHTML = `
+    <div class="card">
+      <h1>Welcome to HealthPal 🌿</h1>
+      <p class="muted-text">Let's set you up in 30 seconds. This helps HealthPal give you tips that actually fit you.</p>
+      <div class="field">
+        <label>What should I call you?</label>
+        <input id="ob-name" placeholder="Your name">
+      </div>
+      <div class="field">
+        <label>Any health focus areas? (this shapes your food tips — pick any that apply)</label>
+        <div class="checkbox-group" id="ob-conditions">
+          ${Object.entries(CONDITION_RULES).map(([key,rule])=>`
+            <label><input type="checkbox" value="${key}"> ${rule.label}</label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>Any other health conditions? (optional — write in your own words, one per line or comma separated)</label>
+        <textarea id="ob-other-conditions" rows="2" placeholder="e.g. gluten intolerance, mild anemia, arthritis in my knees"></textarea>
+      </div>
+      <div class="field">
+        <label>Anything else HealthPal should know? (optional)</label>
+        <textarea id="ob-notes" rows="3" placeholder="e.g. borderline high glucose, not diabetic yet, trying to avoid that"></textarea>
+      </div>
+      <button class="primary" id="ob-save">Get started</button>
+    </div>
+  `;
+  document.getElementById('ob-save').addEventListener('click', ()=>{
+    const name = document.getElementById('ob-name').value.trim();
+    const conditions = Array.from(document.querySelectorAll('#ob-conditions input:checked')).map(i=>i.value);
+    const otherConditions = document.getElementById('ob-other-conditions').value.trim();
+    const notes = document.getElementById('ob-notes').value.trim();
+    data.profile = { ...data.profile, name: name || 'Friend', conditions, otherConditions, notes, onboarded:true };
+    saveData();
+    activeTab = 'dashboard';
+    renderNav();
+    renderContent();
+    toast('Profile saved.');
+  });
+}
+
+/* ---------------- Dashboard ---------------- */
+function renderDashboard(c){
+  const today = todayStr();
+  const meds = data.meds.filter(m=>m.active !== false);
+  const todaysWater = data.water.filter(w=>w.date===today).reduce((s,w)=>s+w.glasses,0);
+  const waterGoal = data.profile.waterGoal || 8;
+  const latestReadingsByMarker = data.markers.map(m=>{
+    const readings = data.readings.filter(r=>r.markerId===m.id).sort((a,b)=>b.date.localeCompare(a.date));
+    return { marker:m, latest: readings[0] };
+  }).filter(x=>x.latest);
+  const recentCheckin = [...data.checkins].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const recentFood = [...data.foodLogs].sort((a,b)=> (b.date+b.time).localeCompare(a.date+a.time)).slice(0,3);
+
+  c.innerHTML = `
+    <div class="grid">
+      <div class="card">
+        <h2 class="section-title">Today's Medications</h2>
+        ${meds.length===0 ? `<div class="empty">No medications added yet. Head to the Medications tab to add one.</div>` :
+          meds.map(m=>`
+            <div class="list-item">
+              <div>
+                <strong>${escapeHtml(m.name)}</strong> <span class="muted-text">${escapeHtml(m.dosage||'')}</span>
+                <div class="meta">⏰ ${m.times.length ? m.times.join(', ') : 'no time set'}</div>
+              </div>
+            </div>
+          `).join('')
+        }
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Water today</h2>
+        <div class="flex-between"><strong>${todaysWater} / ${waterGoal} glasses</strong></div>
+        <div class="progress-bar"><div class="fill" style="width:${Math.min(100, (todaysWater/waterGoal)*100)}%"></div></div>
+        <div class="small-btn-row">
+          <button class="secondary" id="quick-water">+1 glass</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Latest Markers</h2>
+        ${latestReadingsByMarker.length===0 ? `<div class="empty">No blood markers logged yet.</div>` :
+          latestReadingsByMarker.map(x=>{
+            const status = markerStatus(x.marker, x.latest.value);
+            return `<div class="list-item">
+              <div><strong>${escapeHtml(x.marker.name)}</strong><div class="meta">${fmtDate(x.latest.date)}</div></div>
+              <div><span class="pill ${status}">${x.latest.value} ${escapeHtml(x.marker.unit||'')}</span></div>
+            </div>`;
+          }).join('')
+        }
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">How you've been feeling</h2>
+        ${recentCheckin ? `
+          <div class="mood-picker" style="pointer-events:none;">
+            <button class="${recentCheckin.mood==='great'?'selected':''}">😄</button>
+            <button class="${recentCheckin.mood==='good'?'selected':''}">🙂</button>
+            <button class="${recentCheckin.mood==='okay'?'selected':''}">😐</button>
+            <button class="${recentCheckin.mood==='low'?'selected':''}">🙁</button>
+            <button class="${recentCheckin.mood==='rough'?'selected':''}">😣</button>
+          </div>
+          <p class="muted-text" style="margin-top:8px;">Last check-in: ${fmtDate(recentCheckin.date)} — energy ${recentCheckin.energy}/5</p>
+        ` : `<div class="empty">No check-ins yet. How are you feeling today?</div>`}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Recent Food Log</h2>
+      ${recentFood.length===0 ? `<div class="empty">Nothing logged yet — tell HealthPal what you ate on the Food tab!</div>` :
+        recentFood.map(f=>`
+          <div class="list-item">
+            <div>
+              <strong>${escapeHtml(f.mealType||'Meal')}</strong> — ${escapeHtml(f.description)}
+              <div class="meta">${fmtDate(f.date)} ${f.time||''}</div>
+            </div>
+            <span class="pill ${f.verdict}">${escapeHtml(f.verdictLabel||'')}</span>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
+
+  const wb = document.getElementById('quick-water');
+  if(wb) wb.addEventListener('click', ()=>{
+    addWater(1);
+    renderContent();
+  });
+}
+
+function addWater(glasses){
+  const today = todayStr();
+  let entry = data.water.find(w=>w.date===today);
+  if(entry){ entry.glasses += glasses; }
+  else{ data.water.push({id:uid(), date:today, glasses}); }
+  saveData();
+  toast('Water logged.');
+}
+
+/* ---------------- Blood Markers ---------------- */
+function renderMarkers(c){
+  c.innerHTML = `
+    <div class="card form-card">
+      <h2 class="section-title">Add a marker to track</h2>
+      <div class="row">
+        <div class="field"><label>Marker name</label><input id="mk-name" placeholder="e.g. Fasting Glucose"></div>
+        <div class="field"><label>Unit</label><input id="mk-unit" placeholder="e.g. mg/dL"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Healthy range — low</label><input id="mk-low" type="number" step="any" placeholder="optional"></div>
+        <div class="field"><label>Healthy range — high</label><input id="mk-high" type="number" step="any" placeholder="optional"></div>
+      </div>
+      <button class="primary" id="mk-add">Add marker</button>
+    </div>
+    <div id="markers-list"></div>
+  `;
+  document.getElementById('mk-add').addEventListener('click', ()=>{
+    const name = document.getElementById('mk-name').value.trim();
+    if(!name){ toast('Please add a marker name first.'); return; }
+    const unit = document.getElementById('mk-unit').value.trim();
+    const low = document.getElementById('mk-low').value;
+    const high = document.getElementById('mk-high').value;
+    data.markers.push({id:uid(), name, unit, low, high});
+    saveData();
+    renderMarkers(c);
+    toast(`${name} added. Log a reading below.`);
+  });
+  renderMarkersList();
+}
+
+let chartInstances = {};
+
+function renderMarkersList(){
+  const list = document.getElementById('markers-list');
+  if(data.markers.length===0){
+    list.innerHTML = `<div class="card"><div class="empty">No markers yet. Add your first one above — e.g. Fasting Glucose, HbA1c, LDL Cholesterol, Blood Pressure (Systolic)...</div></div>`;
+    return;
+  }
+  list.innerHTML = data.markers.map(m=>{
+    const readings = data.readings.filter(r=>r.markerId===m.id).sort((a,b)=>a.date.localeCompare(b.date));
+    const latest = readings[readings.length-1];
+    const status = latest ? markerStatus(m, latest.value) : 'neutral';
+    return `
+      <div class="card">
+        <div class="flex-between">
+          <h3>${escapeHtml(m.name)} ${latest ? `<span class="pill ${status}">${latest.value} ${escapeHtml(m.unit||'')}</span>` : ''}</h3>
+          <button class="icon-btn" data-del-marker="${m.id}">✕</button>
+        </div>
+        <p class="muted-text">${m.low!==''||m.high!==''? `Healthy range: ${m.low!==''?m.low:'—'} to ${m.high!==''?m.high:'—'} ${escapeHtml(m.unit||'')}` : 'No healthy range set'}</p>
+        ${readings.length>0 ? `<canvas id="chart-${m.id}" height="90"></canvas>` : `<div class="empty">No readings logged yet.</div>`}
+        <div class="row" style="margin-top:12px;">
+          <div class="field"><label>Value</label><input type="number" step="any" id="val-${m.id}" placeholder="Value"></div>
+          <div class="field"><label>Date</label><input type="date" id="date-${m.id}" value="${todayStr()}"></div>
+          <div class="field"><label>Note (optional)</label><input id="note-${m.id}" placeholder="e.g. fasted 12h"></div>
+        </div>
+        <button class="secondary" data-add-reading="${m.id}">Log reading</button>
+      </div>
+    `;
+  }).join('');
+
+  data.markers.forEach(m=>{
+    const readings = data.readings.filter(r=>r.markerId===m.id).sort((a,b)=>a.date.localeCompare(b.date));
+    if(readings.length>0){
+      const ctx = document.getElementById(`chart-${m.id}`);
+      if(chartInstances[m.id]) chartInstances[m.id].destroy();
+      chartInstances[m.id] = new Chart(ctx, {
+        type:'line',
+        data:{
+          labels: readings.map(r=>fmtDate(r.date)),
+          datasets:[{
+            label:m.name,
+            data: readings.map(r=>r.value),
+            borderColor:'#3D8F86',
+            backgroundColor:'rgba(61,143,134,0.18)',
+            tension:0.3,
+            fill:true,
+            pointRadius:4,
+            pointBackgroundColor:'#3D8F86'
+          }]
+        },
+        options:{
+          plugins:{ legend:{ display:false } },
+          scales:{
+            y:{ beginAtZero:false, ticks:{ color:'#95959E' }, grid:{ color:'#2E2E33' } },
+            x:{ ticks:{ color:'#95959E' }, grid:{ color:'#2E2E33' } }
+          }
+        }
+      });
+    }
+  });
+
+  list.querySelectorAll('[data-del-marker]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.delMarker;
+      if(!confirm('Delete this marker and all its readings?')) return;
+      data.markers = data.markers.filter(m=>m.id!==id);
+      data.readings = data.readings.filter(r=>r.markerId!==id);
+      saveData();
+      renderMarkersList();
+    });
+  });
+  list.querySelectorAll('[data-add-reading]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.addReading;
+      const val = parseFloat(document.getElementById(`val-${id}`).value);
+      const date = document.getElementById(`date-${id}`).value || todayStr();
+      const note = document.getElementById(`note-${id}`).value.trim();
+      if(isNaN(val)){ toast('Please enter a number for the value.'); return; }
+      data.readings.push({id:uid(), markerId:id, value:val, date, note});
+      saveData();
+      renderMarkersList();
+      toast('Reading logged!');
+    });
+  });
+}
+
+/* ---------------- Medications ---------------- */
+function renderMeds(c){
+  c.innerHTML = `
+    <div class="banner">This app can't send phone notifications by itself since it's a local file. For reminders that reach you even when this tab is closed, tell me in chat: "remind me to take [medication] at [time] every day" and I'll set up a recurring reminder message. You can also add your medication times to Apple Calendar below, which syncs to iCloud on its own.</div>
+    <div class="card">
+      <div class="flex-between">
+        <div><strong>Add to Apple Calendar</strong><div class="meta">Daily repeating events for each medication time, synced via iCloud once imported.</div></div>
+        <button class="secondary" id="meds-export-ics">Export schedule (.ics)</button>
+      </div>
+    </div>
+    <div class="card form-card">
+      <h2 class="section-title">Add a medication</h2>
+      <div class="row">
+        <div class="field"><label>Name</label><input id="med-name" placeholder="e.g. Metformin"></div>
+        <div class="field"><label>Dosage</label><input id="med-dosage" placeholder="e.g. 500mg"></div>
+      </div>
+      <div class="field"><label>Times per day (comma separated, 24h format)</label><input id="med-times" placeholder="e.g. 08:00, 20:00"></div>
+      <div class="field"><label>Notes (optional)</label><input id="med-notes" placeholder="e.g. take with food"></div>
+      <button class="primary" id="med-add">Add medication</button>
+    </div>
+    <div id="meds-list"></div>
+  `;
+  document.getElementById('meds-export-ics').addEventListener('click', exportMedsICS);
+  document.getElementById('med-add').addEventListener('click', ()=>{
+    const name = document.getElementById('med-name').value.trim();
+    if(!name){ toast('Please add a medication name first.'); return; }
+    const dosage = document.getElementById('med-dosage').value.trim();
+    const timesRaw = document.getElementById('med-times').value.trim();
+    const times = timesRaw ? timesRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
+    const notes = document.getElementById('med-notes').value.trim();
+    data.meds.push({id:uid(), name, dosage, times, notes, active:true});
+    saveData();
+    renderMeds(c);
+    toast(`${name} added!`);
+  });
+  renderMedsList();
+}
+
+function renderMedsList(){
+  const list = document.getElementById('meds-list');
+  if(data.meds.length===0){
+    list.innerHTML = `<div class="card"><div class="empty">No medications yet.</div></div>`;
+    return;
+  }
+  list.innerHTML = `<div class="card"><h2 class="section-title">Your medications</h2>` +
+    data.meds.map(m=>`
+      <div class="list-item">
+        <div>
+          <strong>${escapeHtml(m.name)}</strong> <span class="muted-text">${escapeHtml(m.dosage||'')}</span>
+          <div class="meta">⏰ ${m.times.length? m.times.join(', ') : 'no times set'} ${m.notes? ' · '+escapeHtml(m.notes):''}</div>
+        </div>
+        <button class="icon-btn" data-del-med="${m.id}">✕</button>
+      </div>
+    `).join('') + `</div>`;
+  list.querySelectorAll('[data-del-med]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      data.meds = data.meds.filter(m=>m.id!==btn.dataset.delMed);
+      saveData();
+      renderMedsList();
+    });
+  });
+}
+
+/* ---------------- Food ---------------- */
+function renderFood(c){
+  c.innerHTML = `
+    <div class="card form-card">
+      <h2 class="section-title">Log what you ate</h2>
+      <p class="muted-text">Describe your meal (or attach a photo just to keep a visual record) and I'll give you a friendly tip based on your health focus areas.</p>
+      <div class="row">
+        <div class="field"><label>Meal type</label>
+          <select id="food-type">
+            <option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option>
+          </select>
+        </div>
+        <div class="field"><label>Date</label><input type="date" id="food-date" value="${todayStr()}"></div>
+        <div class="field"><label>Time</label><input type="time" id="food-time" value="${nowTimeStr()}"></div>
+      </div>
+      <div class="field"><label>What did you eat?</label><textarea id="food-desc" rows="2" placeholder="e.g. grilled chicken salad with olive oil dressing"></textarea></div>
+      <div class="field"><label>Photo (optional, just for your records)</label><input type="file" id="food-photo" accept="image/*"></div>
+      <button class="primary" id="food-add">Get my tip</button>
+    </div>
+    <div id="food-result"></div>
+    <div id="food-list"></div>
+  `;
+  document.getElementById('food-add').addEventListener('click', async ()=>{
+    const desc = document.getElementById('food-desc').value.trim();
+    if(!desc){ toast('Please describe what you ate first.'); return; }
+    const mealType = document.getElementById('food-type').value;
+    const date = document.getElementById('food-date').value || todayStr();
+    const time = document.getElementById('food-time').value || nowTimeStr();
+    const fileInput = document.getElementById('food-photo');
+    let photo = null;
+    if(fileInput.files && fileInput.files[0]){
+      photo = await fileToDataUrl(fileInput.files[0]);
+    }
+    const analysis = analyzeFood(desc, data.profile.conditions, data.profile.otherConditions);
+    const entry = {
+      id:uid(), date, time, mealType, description:desc, photo,
+      verdict:analysis.verdict, verdictLabel:analysis.label, tip:analysis.tip, tags:analysis.tags
+    };
+    data.foodLogs.push(entry);
+    saveData();
+    renderFoodResult(analysis);
+    renderFoodList();
+    document.getElementById('food-desc').value='';
+    fileInput.value='';
+  });
+  renderFoodList();
+}
+
+function fileToDataUrl(file){
+  return new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderFoodResult(analysis){
+  const box = document.getElementById('food-result');
+  box.innerHTML = `
+    <div class="tip-box ${analysis.verdict}">
+      <strong>${analysis.label}</strong><br>
+      ${analysis.tip}
+    </div>
+  `;
+}
+
+function renderFoodList(){
+  const list = document.getElementById('food-list');
+  const logs = [...data.foodLogs].sort((a,b)=> (b.date+b.time).localeCompare(a.date+a.time));
+  if(logs.length===0){
+    list.innerHTML = `<div class="card"><div class="empty">No food logged yet.</div></div>`;
+    return;
+  }
+  list.innerHTML = `<div class="card"><h2 class="section-title">History</h2>` +
+    logs.map(f=>`
+      <div class="list-item">
+        ${f.photo ? `<img class="food-photo-thumb" src="${f.photo}">` : ''}
+        <div style="flex:1;">
+          <strong>${escapeHtml(f.mealType)}</strong> — ${escapeHtml(f.description)}
+          <div class="meta">${fmtDate(f.date)} ${f.time}</div>
+        </div>
+        <span class="pill ${f.verdict}">${escapeHtml(f.verdictLabel)}</span>
+        <button class="icon-btn" data-del-food="${f.id}">✕</button>
+      </div>
+    `).join('') + `</div>`;
+  list.querySelectorAll('[data-del-food]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      data.foodLogs = data.foodLogs.filter(f=>f.id!==btn.dataset.delFood);
+      saveData();
+      renderFoodList();
+    });
+  });
+}
+
+/* ---------------- Check-ins ---------------- */
+const MOODS = [
+  {key:'great', emoji:'😄'},
+  {key:'good', emoji:'🙂'},
+  {key:'okay', emoji:'😐'},
+  {key:'low', emoji:'🙁'},
+  {key:'rough', emoji:'😣'}
+];
+
+function renderCheckins(c){
+  let selectedMood = null;
+  c.innerHTML = `
+    <div class="card form-card">
+      <h2 class="section-title">Daily check-in</h2>
+      <div class="field">
+        <label>How are you feeling?</label>
+        <div class="mood-picker" id="mood-picker">
+          ${MOODS.map(m=>`<button data-mood="${m.key}">${m.emoji}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>Energy level: <span id="energy-val">3</span>/5</label>
+        <input type="range" min="1" max="5" value="3" id="energy-slider">
+      </div>
+      <div class="field"><label>Any symptoms or notes? (optional)</label><textarea id="checkin-symptoms" rows="2" placeholder="e.g. slight headache, felt tired after lunch"></textarea></div>
+      <button class="primary" id="checkin-save">Save check-in</button>
+    </div>
+    <div id="checkins-list"></div>
+  `;
+  const picker = document.getElementById('mood-picker');
+  picker.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedMood = btn.dataset.mood;
+      picker.querySelectorAll('button').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+  document.getElementById('energy-slider').addEventListener('input', (e)=>{
+    document.getElementById('energy-val').textContent = e.target.value;
+  });
+  document.getElementById('checkin-save').addEventListener('click', ()=>{
+    if(!selectedMood){ toast('Please pick a mood first.'); return; }
+    const energy = document.getElementById('energy-slider').value;
+    const symptoms = document.getElementById('checkin-symptoms').value.trim();
+    data.checkins.push({id:uid(), date:todayStr(), mood:selectedMood, energy:parseInt(energy), symptoms});
+    saveData();
+    renderCheckins(c);
+    toast('Check-in saved.');
+  });
+  renderCheckinsList();
+}
+
+function renderCheckinsList(){
+  const list = document.getElementById('checkins-list');
+  const entries = [...data.checkins].sort((a,b)=>b.date.localeCompare(a.date));
+  if(entries.length===0){
+    list.innerHTML = `<div class="card"><div class="empty">No check-ins yet.</div></div>`;
+    return;
+  }
+  list.innerHTML = `<div class="card"><h2 class="section-title">Recent check-ins</h2>` +
+    entries.slice(0,20).map(e=>{
+      const mood = MOODS.find(m=>m.key===e.mood);
+      return `<div class="list-item">
+        <div><strong>${mood?mood.emoji:''} ${e.mood}</strong> — energy ${e.energy}/5
+        ${e.symptoms? `<div class="meta">${escapeHtml(e.symptoms)}</div>` : ''}
+        </div>
+        <div class="meta">${fmtDate(e.date)}</div>
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+/* ---------------- Activity (water & exercise) ---------------- */
+function renderActivity(c){
+  const today = todayStr();
+  const todaysWater = data.water.filter(w=>w.date===today).reduce((s,w)=>s+w.glasses,0);
+  const waterGoal = data.profile.waterGoal || 8;
+  const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().slice(0,10);
+  const weekExercise = data.exercise.filter(e=>e.date >= weekAgo);
+  const weekMinutes = weekExercise.reduce((s,e)=>s+e.duration,0);
+
+  c.innerHTML = `
+    <div class="grid">
+      <div class="card">
+        <h2 class="section-title">Water</h2>
+        <div class="flex-between"><strong>${todaysWater} / ${waterGoal} glasses today</strong></div>
+        <div class="progress-bar"><div class="fill" style="width:${Math.min(100,(todaysWater/waterGoal)*100)}%"></div></div>
+        <div class="small-btn-row">
+          <button class="secondary" id="add-water-1">+1 glass</button>
+          <button class="secondary" id="add-water-2">+2 glasses</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">This week's activity</h2>
+        <p><strong>${weekMinutes} minutes</strong> of movement in the last 7 days</p>
+      </div>
+    </div>
+
+    <div class="card form-card">
+      <h2 class="section-title">Log exercise</h2>
+      <div class="row">
+        <div class="field"><label>Type</label><input id="ex-type" placeholder="e.g. Walking, Yoga, Gym"></div>
+        <div class="field"><label>Duration (minutes)</label><input id="ex-duration" type="number" placeholder="30"></div>
+        <div class="field"><label>Date</label><input type="date" id="ex-date" value="${todayStr()}"></div>
+      </div>
+      <button class="primary" id="ex-add">Log it</button>
+    </div>
+    <div id="exercise-list"></div>
+  `;
+
+  document.getElementById('add-water-1').addEventListener('click', ()=>{ addWater(1); renderActivity(c); });
+  document.getElementById('add-water-2').addEventListener('click', ()=>{ addWater(2); renderActivity(c); });
+  document.getElementById('ex-add').addEventListener('click', ()=>{
+    const type = document.getElementById('ex-type').value.trim();
+    const duration = parseInt(document.getElementById('ex-duration').value);
+    const date = document.getElementById('ex-date').value || todayStr();
+    if(!type || isNaN(duration)){ toast('Please add a type and duration.'); return; }
+    data.exercise.push({id:uid(), date, type, duration});
+    saveData();
+    renderActivity(c);
+    toast('Exercise logged.');
+  });
+
+  const exList = document.getElementById('exercise-list');
+  const entries = [...data.exercise].sort((a,b)=>b.date.localeCompare(a.date));
+  if(entries.length===0){
+    exList.innerHTML = `<div class="card"><div class="empty">No exercise logged yet.</div></div>`;
+  } else {
+    exList.innerHTML = `<div class="card"><h2 class="section-title">Exercise history</h2>` +
+      entries.slice(0,20).map(e=>`
+        <div class="list-item">
+          <div><strong>${escapeHtml(e.type)}</strong> — ${e.duration} min</div>
+          <div class="meta">${fmtDate(e.date)}</div>
+        </div>
+      `).join('') + `</div>`;
+  }
+}
+
+/* ---------------- Period tracker ---------------- */
+function renderPeriod(c){
+  const entries = [...data.periods].sort((a,b)=>b.startDate.localeCompare(a.startDate));
+  let prediction = null;
+  if(entries.length>=2){
+    const sorted = [...data.periods].sort((a,b)=>a.startDate.localeCompare(b.startDate));
+    let diffs = [];
+    for(let i=1;i<sorted.length;i++){
+      const d1 = new Date(sorted[i-1].startDate);
+      const d2 = new Date(sorted[i].startDate);
+      diffs.push((d2-d1)/(1000*60*60*24));
+    }
+    const avg = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+    const last = new Date(sorted[sorted.length-1].startDate);
+    const next = new Date(last.getTime() + avg*24*60*60*1000);
+    prediction = { date: next.toISOString().slice(0,10), avgCycle: Math.round(avg) };
+  }
+
+  c.innerHTML = `
+    <div class="card">
+      <h2 class="section-title">Cycle overview</h2>
+      ${prediction ?
+        `<p>Average cycle length: <strong>${prediction.avgCycle} days</strong></p>
+         <p>Estimated next period: <strong>${fmtDate(prediction.date)}</strong> <span class="muted-text">(rough estimate)</span></p>`
+        : `<p class="muted-text">Log at least 2 cycles to see a prediction.</p>`
+      }
+    </div>
+    <div class="card form-card">
+      <h2 class="section-title">Log a cycle</h2>
+      <div class="row">
+        <div class="field"><label>Start date</label><input type="date" id="per-start" value="${todayStr()}"></div>
+        <div class="field"><label>End date (optional)</label><input type="date" id="per-end"></div>
+      </div>
+      <div class="field"><label>Symptoms (optional)</label><input id="per-symptoms" placeholder="e.g. cramps, fatigue"></div>
+      <button class="primary" id="per-add">Log cycle</button>
+    </div>
+    <div id="period-list"></div>
+  `;
+  document.getElementById('per-add').addEventListener('click', ()=>{
+    const startDate = document.getElementById('per-start').value;
+    const endDate = document.getElementById('per-end').value;
+    const symptoms = document.getElementById('per-symptoms').value.trim();
+    if(!startDate){ toast('Please add a start date.'); return; }
+    data.periods.push({id:uid(), startDate, endDate, symptoms});
+    saveData();
+    renderPeriod(c);
+    toast('Cycle logged.');
+  });
+
+  const list = document.getElementById('period-list');
+  if(entries.length===0){
+    list.innerHTML = `<div class="card"><div class="empty">No cycles logged yet.</div></div>`;
+  } else {
+    list.innerHTML = `<div class="card"><h2 class="section-title">History</h2>` +
+      entries.map(p=>`
+        <div class="list-item">
+          <div><strong>${fmtDate(p.startDate)}</strong> ${p.endDate ? '→ '+fmtDate(p.endDate):''}
+          ${p.symptoms? `<div class="meta">${escapeHtml(p.symptoms)}</div>`:''}</div>
+          <button class="icon-btn" data-del-period="${p.id}">✕</button>
+        </div>
+      `).join('') + `</div>`;
+    list.querySelectorAll('[data-del-period]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        data.periods = data.periods.filter(p=>p.id!==btn.dataset.delPeriod);
+        saveData();
+        renderPeriod(c);
+      });
+    });
+  }
+}
+
+/* ---------------- Calendar ---------------- */
+let calendarViewDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+function renderCalendar(c){
+  const year = calendarViewDate.getFullYear();
+  const month = calendarViewDate.getMonth();
+  const monthLabel = calendarViewDate.toLocaleDateString(undefined,{month:'long', year:'numeric'});
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayIso = todayStr();
+
+  let cells = '';
+  for(let i=0;i<firstDow;i++){ cells += `<div class="cal-day empty-day"></div>`; }
+  for(let d=1; d<=daysInMonth; d++){
+    const iso = `${year}-${pad2(month+1)}-${pad2(d)}`;
+    const dayAppts = data.appointments.filter(a=>a.date===iso);
+    const dayReadings = data.readings.filter(r=>r.date===iso);
+    const dayFood = data.foodLogs.filter(f=>f.date===iso);
+    const hasMedToday = iso>=todayIso && data.meds.some(m=>m.active!==false && m.times && m.times.length>0);
+    const dots = [];
+    if(hasMedToday) dots.push('<span class="cal-dot med"></span>');
+    if(dayAppts.length) dots.push('<span class="cal-dot appt"></span>');
+    if(dayReadings.length) dots.push('<span class="cal-dot reading"></span>');
+    if(dayFood.length) dots.push('<span class="cal-dot food"></span>');
+    cells += `<div class="cal-day ${iso===todayIso?'today':''}" data-day="${iso}">
+      <div class="cal-daynum">${d}</div>
+      <div class="cal-dots">${dots.join('')}</div>
+    </div>`;
+  }
+
+  c.innerHTML = `
+    <div class="card no-print">
+      <div class="flex-between">
+        <button class="secondary" id="cal-prev">‹ Prev</button>
+        <h2 class="section-title" style="margin:0;">${monthLabel}</h2>
+        <button class="secondary" id="cal-next">Next ›</button>
+      </div>
+      <div class="cal-grid" style="margin-top:14px;">
+        <div class="cal-dow">Sun</div><div class="cal-dow">Mon</div><div class="cal-dow">Tue</div><div class="cal-dow">Wed</div><div class="cal-dow">Thu</div><div class="cal-dow">Fri</div><div class="cal-dow">Sat</div>
+        ${cells}
+      </div>
+      <p class="muted-text" style="margin-top:10px;">
+        <span class="cal-dot med" style="display:inline-block;"></span> medication day &nbsp;
+        <span class="cal-dot appt" style="display:inline-block;"></span> appointment &nbsp;
+        <span class="cal-dot reading" style="display:inline-block;"></span> marker logged &nbsp;
+        <span class="cal-dot food" style="display:inline-block;"></span> food logged
+      </p>
+    </div>
+
+    <div id="cal-day-detail"></div>
+
+    <div class="card form-card">
+      <h2 class="section-title">Add an appointment</h2>
+      <div class="row">
+        <div class="field"><label>Title</label><input id="appt-title" placeholder="e.g. Dr. Smith follow-up"></div>
+        <div class="field"><label>Date</label><input type="date" id="appt-date" value="${todayStr()}"></div>
+        <div class="field"><label>Time</label><input type="time" id="appt-time" value="09:00"></div>
+      </div>
+      <div class="field"><label>Notes (optional)</label><input id="appt-notes" placeholder="e.g. bring latest lab results"></div>
+      <button class="primary" id="appt-add">Add appointment</button>
+    </div>
+
+    <div class="card">
+      <div class="flex-between">
+        <h2 class="section-title" style="margin:0;">Appointments</h2>
+        <button class="secondary" id="appt-export-all">Export all to Calendar (.ics)</button>
+      </div>
+      <div id="appt-list"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Medication schedule</h2>
+      <p class="muted-text">This creates a daily repeating calendar event for each medication time set in the Medications tab. Open the downloaded file and it'll add straight into Apple Calendar, which syncs to iCloud on its own — there's no live two-way connection since this app has no server, so re-export any time your medication times change.</p>
+      <button class="secondary" id="export-meds-ics">Export medication schedule (.ics)</button>
+    </div>
+  `;
+
+  document.getElementById('cal-prev').addEventListener('click', ()=>{
+    calendarViewDate = new Date(year, month-1, 1);
+    renderCalendar(c);
+  });
+  document.getElementById('cal-next').addEventListener('click', ()=>{
+    calendarViewDate = new Date(year, month+1, 1);
+    renderCalendar(c);
+  });
+  c.querySelectorAll('.cal-day[data-day]').forEach(cell=>{
+    cell.addEventListener('click', ()=> renderDayDetail(cell.dataset.day));
+  });
+  document.getElementById('appt-add').addEventListener('click', ()=>{
+    const title = document.getElementById('appt-title').value.trim();
+    if(!title){ toast('Please add a title first.'); return; }
+    const date = document.getElementById('appt-date').value || todayStr();
+    const time = document.getElementById('appt-time').value || '09:00';
+    const notes = document.getElementById('appt-notes').value.trim();
+    data.appointments.push({id:uid(), title, date, time, notes});
+    saveData();
+    renderCalendar(c);
+    toast('Appointment added.');
+  });
+  document.getElementById('appt-export-all').addEventListener('click', exportAllAppointmentsICS);
+  document.getElementById('export-meds-ics').addEventListener('click', exportMedsICS);
+  renderAppointmentsList();
+}
+
+function renderDayDetail(iso){
+  const box = document.getElementById('cal-day-detail');
+  if(!box) return;
+  const dayAppts = data.appointments.filter(a=>a.date===iso);
+  const dayReadings = data.readings.filter(r=>r.date===iso);
+  const dayFood = data.foodLogs.filter(f=>f.date===iso);
+  const dayCheckins = data.checkins.filter(ch=>ch.date===iso);
+  const nothing = !dayAppts.length && !dayReadings.length && !dayFood.length && !dayCheckins.length;
+  box.innerHTML = `
+    <div class="card">
+      <h2 class="section-title">${fmtDate(iso)}</h2>
+      ${dayAppts.map(a=>`<div class="list-item"><div><strong>${escapeHtml(a.title)}</strong><div class="meta">${a.time||''}${a.notes?' · '+escapeHtml(a.notes):''}</div></div></div>`).join('')}
+      ${dayReadings.map(r=>{ const m = data.markers.find(mk=>mk.id===r.markerId); return `<div class="list-item"><div>${m?escapeHtml(m.name):'Marker'}: ${r.value} ${m?escapeHtml(m.unit||''):''}</div></div>`; }).join('')}
+      ${dayFood.map(f=>`<div class="list-item"><div>${escapeHtml(f.mealType)}: ${escapeHtml(f.description)}</div></div>`).join('')}
+      ${dayCheckins.map(ch=>`<div class="list-item"><div>Check-in: ${escapeHtml(ch.mood)}, energy ${ch.energy}/5</div></div>`).join('')}
+      ${nothing ? `<div class="empty">Nothing logged for this day.</div>` : ''}
+    </div>
+  `;
+}
+
+function renderAppointmentsList(){
+  const list = document.getElementById('appt-list');
+  const entries = [...data.appointments].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  if(entries.length===0){
+    list.innerHTML = `<div class="empty">No appointments yet.</div>`;
+    return;
+  }
+  list.innerHTML = entries.map(a=>`
+    <div class="list-item">
+      <div><strong>${escapeHtml(a.title)}</strong><div class="meta">${fmtDate(a.date)} ${a.time}${a.notes?' · '+escapeHtml(a.notes):''}</div></div>
+      <div class="small-btn-row">
+        <button class="secondary" data-ics-appt="${a.id}">Add to Calendar</button>
+        <button class="icon-btn" data-del-appt="${a.id}">✕</button>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-ics-appt]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const appt = data.appointments.find(a=>a.id===btn.dataset.icsAppt);
+      if(appt) exportAppointmentICS(appt);
+    });
+  });
+  list.querySelectorAll('[data-del-appt]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      data.appointments = data.appointments.filter(a=>a.id!==btn.dataset.delAppt);
+      saveData();
+      renderAppointmentsList();
+    });
+  });
+}
+
+/* ---------------- Documents ---------------- */
+const DOC_CATEGORIES = ['Blood test result','Doctor\'s note','Prescription','Imaging / scan','Insurance','Other'];
+
+function renderDocuments(c){
+  c.innerHTML = `
+    <div class="banner">Files are stored in this browser only (as with everything else in HealthPal), so keep an eye on storage size if you upload a lot of large PDFs or scans. Use Export/Import backup in Settings if you want a copy elsewhere.</div>
+    <div class="card form-card">
+      <h2 class="section-title">Upload a document</h2>
+      <div class="row">
+        <div class="field"><label>Title</label><input id="doc-title" placeholder="e.g. Fasting glucose panel, March"></div>
+        <div class="field"><label>Category</label>
+          <select id="doc-category">${DOC_CATEGORIES.map(cat=>`<option>${cat}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Date</label><input type="date" id="doc-date" value="${todayStr()}"></div>
+      </div>
+      <div class="field"><label>File</label><input type="file" id="doc-file"></div>
+      <div class="field"><label>Notes (optional)</label><input id="doc-notes" placeholder="e.g. results from Dr. Lee's office"></div>
+      <button class="primary" id="doc-add">Save document</button>
+    </div>
+    <div id="doc-list"></div>
+  `;
+  document.getElementById('doc-add').addEventListener('click', async ()=>{
+    const title = document.getElementById('doc-title').value.trim();
+    const fileInput = document.getElementById('doc-file');
+    if(!title){ toast('Please add a title first.'); return; }
+    if(!fileInput.files || !fileInput.files[0]){ toast('Please choose a file first.'); return; }
+    const file = fileInput.files[0];
+    const dataUrl = await fileToDataUrl(file);
+    const category = document.getElementById('doc-category').value;
+    const date = document.getElementById('doc-date').value || todayStr();
+    const notes = document.getElementById('doc-notes').value.trim();
+    data.documents.push({
+      id:uid(), name:title, category, date, notes,
+      fileName:file.name, fileType:file.type, dataUrl
+    });
+    saveData();
+    renderDocuments(c);
+    toast('Document saved.');
+  });
+  renderDocumentsList();
+}
+
+function renderDocumentsList(){
+  const list = document.getElementById('doc-list');
+  const entries = [...data.documents].sort((a,b)=>b.date.localeCompare(a.date));
+  if(entries.length===0){
+    list.innerHTML = `<div class="card"><div class="empty">No documents uploaded yet.</div></div>`;
+    return;
+  }
+  list.innerHTML = `<div class="card"><h2 class="section-title">Your documents</h2>` +
+    entries.map(d=>`
+      <div class="list-item">
+        <div>
+          <strong>${escapeHtml(d.name)}</strong> <span class="pill neutral">${escapeHtml(d.category)}</span>
+          <div class="meta">${fmtDate(d.date)}${d.notes?' · '+escapeHtml(d.notes):''} · ${escapeHtml(d.fileName)}</div>
+        </div>
+        <div class="small-btn-row">
+          <a class="secondary" style="text-decoration:none; display:inline-block;" href="${d.dataUrl}" download="${escapeHtml(d.fileName)}">Download</a>
+          <button class="icon-btn" data-del-doc="${d.id}">✕</button>
+        </div>
+      </div>
+    `).join('') + `</div>`;
+  list.querySelectorAll('[data-del-doc]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(!confirm('Delete this document?')) return;
+      data.documents = data.documents.filter(d=>d.id!==btn.dataset.delDoc);
+      saveData();
+      renderDocumentsList();
+    });
+  });
+}
+
+/* ---------------- Doctor Report ---------------- */
+function renderReport(c){
+  const defaultFrom = new Date(Date.now() - 30*24*60*60*1000).toISOString().slice(0,10);
+  c.innerHTML = `
+    <div class="card no-print">
+      <h2 class="section-title">Doctor visit report</h2>
+      <div class="row">
+        <div class="field"><label>From</label><input type="date" id="rep-from" value="${defaultFrom}"></div>
+        <div class="field"><label>To</label><input type="date" id="rep-to" value="${todayStr()}"></div>
+      </div>
+      <div class="small-btn-row">
+        <button class="primary" id="rep-generate">Generate report</button>
+        <button class="secondary" id="rep-print">Print / Save as PDF</button>
+        <button class="secondary" id="rep-csv">Download raw data (CSV)</button>
+      </div>
+    </div>
+    <div id="report-output"></div>
+  `;
+  document.getElementById('rep-generate').addEventListener('click', ()=>generateReport());
+  document.getElementById('rep-print').addEventListener('click', ()=>window.print());
+  document.getElementById('rep-csv').addEventListener('click', ()=>downloadCsv());
+  generateReport();
+}
+
+function generateReport(){
+  const from = document.getElementById('rep-from').value;
+  const to = document.getElementById('rep-to').value;
+  const inRange = (d)=> (!from || d>=from) && (!to || d<=to);
+
+  const markerSummaries = data.markers.map(m=>{
+    const readings = data.readings.filter(r=>r.markerId===m.id && inRange(r.date)).sort((a,b)=>a.date.localeCompare(b.date));
+    if(readings.length===0) return null;
+    const latest = readings[readings.length-1];
+    const prev = readings.length>1 ? readings[readings.length-2] : null;
+    const trend = prev ? (latest.value>prev.value? '↑' : latest.value<prev.value? '↓' : '→') : '—';
+    return { name:m.name, unit:m.unit, latest:latest.value, date:latest.date, status:markerStatus(m,latest.value), trend, count:readings.length };
+  }).filter(Boolean);
+
+  const activeMeds = data.meds.filter(m=>m.active!==false);
+  const foodInRange = data.foodLogs.filter(f=>inRange(f.date));
+  const riskyFoodCount = foodInRange.filter(f=>f.verdict==='bad').length;
+  const checkinsInRange = data.checkins.filter(c=>inRange(c.date));
+  const avgMood = checkinsInRange.length ? (checkinsInRange.reduce((s,c)=>s+c.energy,0)/checkinsInRange.length).toFixed(1) : null;
+  const docsInRange = data.documents.filter(d=>inRange(d.date));
+
+  const out = document.getElementById('report-output');
+  out.innerHTML = `
+    <div class="card" id="printable-report">
+      <h2>Health Summary Report</h2>
+      <p class="muted-text">${escapeHtml(data.profile.name||'')} — Range: ${fmtDate(from)} to ${fmtDate(to)}</p>
+      ${data.profile.conditions.length ? `<p><strong>Health focus areas:</strong> ${data.profile.conditions.map(c=>CONDITION_RULES[c]?CONDITION_RULES[c].label:c).join(', ')}</p>` : ''}
+      ${data.profile.otherConditions ? `<p><strong>Other conditions noted:</strong> ${escapeHtml(data.profile.otherConditions)}</p>` : ''}
+      ${data.profile.notes ? `<p><strong>Notes:</strong> ${escapeHtml(data.profile.notes)}</p>` : ''}
+
+      <h3>Blood Markers</h3>
+      ${markerSummaries.length===0 ? '<p class="muted-text">No readings in this range.</p>' : `
+        <table>
+          <thead><tr><th>Marker</th><th>Latest</th><th>Date</th><th>Trend</th><th>Readings</th></tr></thead>
+          <tbody>
+          ${markerSummaries.map(m=>`<tr><td>${escapeHtml(m.name)}</td><td><span class="pill ${m.status}">${m.latest} ${escapeHtml(m.unit||'')}</span></td><td>${fmtDate(m.date)}</td><td>${m.trend}</td><td>${m.count}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      `}
+
+      <h3>Active Medications</h3>
+      ${activeMeds.length===0 ? '<p class="muted-text">None on record.</p>' : `
+        <table><thead><tr><th>Name</th><th>Dosage</th><th>Times</th></tr></thead>
+        <tbody>${activeMeds.map(m=>`<tr><td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.dosage||'')}</td><td>${m.times.join(', ')}</td></tr>`).join('')}</tbody></table>
+      `}
+
+      <h3>Nutrition Snapshot</h3>
+      <p>${foodInRange.length} meals logged in this range, ${riskyFoodCount} flagged as worth watching.</p>
+
+      <h3>Wellbeing</h3>
+      <p>${checkinsInRange.length} check-ins logged.${avgMood ? ` Average energy: ${avgMood}/5.` : ''}</p>
+
+      <h3>Attached Documents</h3>
+      ${docsInRange.length===0 ? '<p class="muted-text">None in this range.</p>' : `
+        <table><thead><tr><th>Title</th><th>Category</th><th>Date</th></tr></thead>
+        <tbody>${docsInRange.map(d=>`<tr><td>${escapeHtml(d.name)}</td><td>${escapeHtml(d.category)}</td><td>${fmtDate(d.date)}</td></tr>`).join('')}</tbody></table>
+      `}
+    </div>
+  `;
+}
+
+function downloadCsv(){
+  let rows = [['Type','Date','Field1','Field2','Field3']];
+  data.readings.forEach(r=>{
+    const marker = data.markers.find(m=>m.id===r.markerId);
+    rows.push(['Blood Marker', r.date, marker?marker.name:'', r.value, marker?marker.unit:'']);
+  });
+  data.foodLogs.forEach(f=>rows.push(['Food', f.date, f.mealType, f.description.replace(/,/g,';'), f.verdictLabel]));
+  data.checkins.forEach(c=>rows.push(['Check-in', c.date, c.mood, c.energy, (c.symptoms||'').replace(/,/g,';')]));
+  data.exercise.forEach(e=>rows.push(['Exercise', e.date, e.type, e.duration, '']));
+  data.water.forEach(w=>rows.push(['Water', w.date, w.glasses, '', '']));
+  data.periods.forEach(p=>rows.push(['Cycle', p.startDate, p.endDate||'', (p.symptoms||'').replace(/,/g,';'), '']));
+  data.appointments.forEach(a=>rows.push(['Appointment', a.date, a.title.replace(/,/g,';'), a.time||'', (a.notes||'').replace(/,/g,';')]));
+  data.documents.forEach(d=>rows.push(['Document', d.date, d.name.replace(/,/g,';'), d.category, d.fileName.replace(/,/g,';')]));
+
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'healthpal-export.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------------- Settings ---------------- */
+function renderSettings(c){
+  c.innerHTML = `
+    <div class="card">
+      <h2 class="section-title">Your profile</h2>
+      <div class="field"><label>Name</label><input id="set-name" value="${escapeHtml(data.profile.name)}"></div>
+      <div class="field">
+        <label>Health focus areas</label>
+        <div class="checkbox-group" id="set-conditions">
+          ${Object.entries(CONDITION_RULES).map(([key,rule])=>`
+            <label><input type="checkbox" value="${key}" ${data.profile.conditions.includes(key)?'checked':''}> ${rule.label}</label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>Any other health conditions? (optional — write in your own words, one per line or comma separated)</label>
+        <textarea id="set-other-conditions" rows="2" placeholder="e.g. gluten intolerance, mild anemia, arthritis in my knees">${escapeHtml(data.profile.otherConditions)}</textarea>
+      </div>
+      <div class="field"><label>Notes for HealthPal</label><textarea id="set-notes" rows="3">${escapeHtml(data.profile.notes)}</textarea></div>
+      <div class="field"><label>Daily water goal (glasses)</label><input type="number" id="set-water" value="${data.profile.waterGoal||8}"></div>
+      <button class="primary" id="set-save">Save changes</button>
+    </div>
+    <div class="card">
+      <h2 class="section-title">Your data</h2>
+      <p class="muted-text">Everything you enter is stored only in this browser (localStorage) on this device — nothing is sent anywhere.</p>
+      <div class="banner">Using HealthPal on more than one device (like your phone and your computer)? Data doesn't sync automatically between them. On the device with your latest data, click "Export all data," then open HealthPal on the other device and use "Import backup" to bring it over. Do this any time you want the two in sync.</div>
+      <div class="small-btn-row">
+        <button class="secondary" id="export-json">Export all data (JSON backup)</button>
+        <button class="secondary" id="import-json-btn">Import backup</button>
+        <input type="file" id="import-json" accept="application/json" style="display:none;">
+      </div>
+      <div class="small-btn-row">
+        <button class="secondary" id="reset-data" style="color:#A5322C;">Clear all data</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('set-save').addEventListener('click', ()=>{
+    data.profile.name = document.getElementById('set-name').value.trim() || 'Friend';
+    data.profile.conditions = Array.from(document.querySelectorAll('#set-conditions input:checked')).map(i=>i.value);
+    data.profile.otherConditions = document.getElementById('set-other-conditions').value.trim();
+    data.profile.notes = document.getElementById('set-notes').value.trim();
+    data.profile.waterGoal = parseInt(document.getElementById('set-water').value) || 8;
+    data.profile.onboarded = true;
+    saveData();
+    toast('Saved!');
+    renderHeaderGreeting();
+  });
+  document.getElementById('export-json').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'healthpal-backup.json'; a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById('import-json-btn').addEventListener('click', ()=>{
+    document.getElementById('import-json').click();
+  });
+  document.getElementById('import-json').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const imported = JSON.parse(reader.result);
+        data = Object.assign(defaultData(), imported);
+        saveData();
+        toast('Backup imported!');
+        renderNav(); renderContent();
+      }catch(err){
+        toast('Could not read that file.');
+      }
+    };
+    reader.readAsText(file);
+  });
+  document.getElementById('reset-data').addEventListener('click', ()=>{
+    if(!confirm('This will permanently erase all your HealthPal data on this device. Continue?')) return;
+    data = defaultData();
+    saveData();
+    toast('All data cleared.');
+    activeTab = 'dashboard';
+    renderNav(); renderContent();
+  });
+}
+
+/* ---------------- In-app medication reminder check (while tab open) ---------------- */
+setInterval(()=>{
+  const now = nowTimeStr();
+  const today = todayStr();
+  data.meds.forEach(m=>{
+    if(m.active===false) return;
+    if(m.times && m.times.includes(now)){
+      const key = `notified-${m.id}-${today}-${now}`;
+      if(!sessionStorage.getItem(key)){
+        sessionStorage.setItem(key, '1');
+        toast(`Time to take ${m.name}${m.dosage? ' ('+m.dosage+')':''}.`);
+        if('Notification' in window && Notification.permission==='granted'){
+          new Notification('HealthPal reminder', { body:`Time to take ${m.name}` });
+        }
+      }
+    }
+  });
+}, 30000);
+
+/* ---------------- Init ---------------- */
+renderNav();
+renderContent();
+</script>
+</body>
+</html>
