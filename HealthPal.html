@@ -582,6 +582,10 @@ function parseLabLine(rawLine){
   let line = (rawLine||'').trim();
   if(!line || line.length < 4) return null;
   if(!/\d/.test(line)) return null;
+  // Skip lines that are just a label + a full date (e.g. "Date: 14.03.2026" or "Дата: 2026-03-14"),
+  // so the document's own date stamp doesn't get mistaken for a result.
+  const dateOnlyRe = /^[^\d]{1,25}[:\s]\s*(\d{1,2}[.\-\/]\d{1,2}[.\-\/]\d{4}|\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})\s*$/;
+  if(dateOnlyRe.test(line)) return null;
 
   let low = '', high = '';
   const rangeMatch = line.match(/[\(\[]?\s*(\d{1,4}(?:[.,]\d{1,3})?)\s*[-–—]\s*(\d{1,4}(?:[.,]\d{1,3})?)\s*[\)\]]?/);
