@@ -1,7 +1,7 @@
 # PRD: HealthPal — Personal Health Tracker & Companion
 
-**Status:** v1.1 built and delivered (`HealthPal.html`)
-**Last updated:** July 8, 2026
+**Status:** v1.2 built and delivered (`HealthPal.html`), published at https://batmika.github.io/healthpal-app/
+**Last updated:** July 9, 2026
 
 ## 1. Summary
 
@@ -32,6 +32,7 @@ People managing an emerging or chronic health condition typically juggle three d
 - **No clinical claims.** HealthPal offers general, rule-based food guidance tied to self-reported conditions. It is not a diagnostic tool and doesn't replace medical advice.
 - **No Apple Health integration.** Apple Health (HealthKit) has no public web API — a browser-based app cannot read from or write to it under any circumstances, regardless of backend investment. This isn't a v1 limitation to revisit later; it's a platform-level restriction. iCloud Calendar is the supported integration point instead (see §8).
 - **No live two-way calendar sync.** Apple's calendar servers don't accept direct connections from browser JavaScript (CORS-blocked), so calendar integration is one-way, user-initiated: HealthPal generates a standard calendar file (.ics) that the user opens once to add events into Apple Calendar, which then syncs to iCloud on its own.
+- **No guaranteed-accurate document parsing.** The blood test document import is a best-effort, regex/dictionary-based reader, not a medical-grade or AI-powered parser — there's no backend to send documents to for intelligent extraction. It's tuned for English, Russian, and Kazakh test names, but unrecognized names, unusual formats, poor handwriting, or low-quality photos will be missed or mis-read. Every extracted row must be reviewed and confirmed by the user before anything is saved to Blood Markers — nothing is written automatically.
 
 ## 5. Target Users
 
@@ -43,7 +44,8 @@ People managing an emerging or chronic health condition typically juggle three d
 | Area | What it does |
 |---|---|
 | Onboarding | First-run setup: name, health focus areas (checkboxes for blood sugar, blood pressure, cholesterol), a free-text box for any other health conditions in the user's own words, and general notes. The checkbox conditions drive the food recommendation rules; free-text conditions are stored and shown in the profile/doctor report, and referenced in food tips as noted context, since they aren't tied to a keyword rule set. |
-| Blood Markers | User defines any custom marker (name, unit, healthy range) rather than a fixed list, logs readings with dates and notes, and sees a trend chart with color-coded status (good / borderline / out of range) per marker. |
+| Blood Markers | User defines any custom marker (name, unit, healthy range) rather than a fixed list, logs readings with dates and notes, and sees a trend chart with color-coded status (good / borderline / out of range) per marker. Also supports importing results directly from a document (see below). |
+| Document Import for Blood Markers | Upload a blood test PDF or photo. Digital PDFs are read directly (pdf.js extracts the embedded text layer); scanned/photographed documents run through on-device OCR (Tesseract.js, no server involved) using whichever of English/Russian/Kazakh the user selects. A regex-based parser plus an EN/RU/KZ test-name dictionary pulls out candidate rows (name, value, unit, reference range) and a document date. Results are shown in an editable review list — nothing is written to Blood Markers until the user confirms — then confirmed rows create/reuse markers and add readings in one click. The source file can optionally also be saved to Documents. |
 | Medications | Add medications with dosage and one or more daily times. In-app list shows what's due today. A banner explains that real reminders are delivered through a separate scheduled-message setup (see §8), since the app can't notify on its own when closed. While the tab is open, it also does a lightweight in-app check every 30 seconds and surfaces a toast if a dose time is hit. |
 | Food Log & Recommendations | User types a description of what they ate (meal type, date/time, optional reference photo). A rule-based engine checks the description against keyword lists tied to the user's selected condition(s) and returns a verdict — great choice, okay in moderation, worth watching, or just "logged" if there's not enough detail — plus a short friendly explanation. Full history is kept and browsable. |
 | Daily Check-in | Mood (5-point emoji scale), energy (1–5 slider), and free-text symptoms/notes, logged once per day and viewable as history. |
@@ -113,4 +115,5 @@ Multi-device use (phone and computer) was a stated requirement. Since localStora
 ## 13. Version History
 
 - **v1 (July 8, 2026):** Initial build — all features in §6 (original set) implemented and delivered as `HealthPal.html`. Follow-up revision pass: toned down copy/emoji, clarified multi-device backup workflow, fixed an onboarding-lock edge case in Settings.
-- **v1.1 (July 8, 2026):** Added a free-text "other health conditions" field alongside the fixed checkboxes; switched the visual theme from bright to dark/muted; added a Calendar tab (month view + appointments + .ics export for Apple Calendar/iCloud); added a Documents tab for uploading and downloading arbitrary files (lab results, doctor's notes, etc.); documented why Apple Health cannot be integrated from a web app.
+- **v1.1 (July 8, 2026):** Added a free-text "other health conditions" field alongside the fixed checkboxes; switched the visual theme from bright to dark/muted; added a Calendar tab (month view + appointments + .ics export for Apple Calendar/iCloud); added a Documents tab for uploading and downloading arbitrary files (lab results, doctor's notes, etc.); documented why Apple Health cannot be integrated from a web app. Published to GitHub (github.com/Batmika/healthpal-app) and then to GitHub Pages, which required making the repo public and scrubbing personal identifying details from this PRD first.
+- **v1.2 (July 9, 2026):** Added blood test document import on the Blood Markers tab — client-side PDF text extraction (pdf.js) with OCR fallback for scans/photos (Tesseract.js, English/Russian/Kazakh), a best-effort name/value/unit/range parser with an EN/RU/KZ test-name dictionary, and a mandatory review-before-save step.

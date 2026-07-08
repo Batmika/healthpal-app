@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/6.0.1/tesseract.min.js"></script>
 <style>
   :root{
     --teal:#3D8F86;
@@ -389,6 +391,10 @@ function saveData(){
 
 let data = loadData();
 
+if(window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 function uid(){
   if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
   return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
@@ -511,6 +517,263 @@ function exportAllAppointmentsICS(){
   }));
   downloadICS('healthpal-appointments.ics', buildICS(events));
   toast('Calendar file downloaded — open it to add these to Apple Calendar.');
+}
+
+/* ---------------- Blood test document import (client-side, no server) ---------------- */
+// Best-effort dictionary mapping common lab test names (English / Russian / Kazakh)
+// to a canonical marker name and a typical unit hint. Anything not recognized still
+// gets picked up as a raw candidate row (Title Cased) so no language is fully unsupported —
+// it just won't be auto-labeled, and the user can rename it in the review step.
+const MARKER_DICTIONARY = {
+  'Glucose': { unit:'mmol/L', aliases:['glucose','blood sugar','fasting glucose','глюкоза','глюкоза (кровь)','қант','глюкоза плазмы'] },
+  'Hemoglobin': { unit:'g/L', aliases:['hemoglobin','haemoglobin','hgb','hb','гемоглобин'] },
+  'Hematocrit': { unit:'%', aliases:['hematocrit','haematocrit','hct','гематокрит'] },
+  'White Blood Cells': { unit:'x10^9/L', aliases:['wbc','white blood cell','white blood cells','leukocytes','лейкоциты'] },
+  'Red Blood Cells': { unit:'x10^12/L', aliases:['rbc','red blood cell','red blood cells','erythrocytes','эритроциты'] },
+  'Platelets': { unit:'x10^9/L', aliases:['platelets','plt','тромбоциты'] },
+  'Total Cholesterol': { unit:'mmol/L', aliases:['total cholesterol','cholesterol','холестерин','холестерин общий'] },
+  'HDL Cholesterol': { unit:'mmol/L', aliases:['hdl','hdl cholesterol','лпвп'] },
+  'LDL Cholesterol': { unit:'mmol/L', aliases:['ldl','ldl cholesterol','лпнп'] },
+  'Triglycerides': { unit:'mmol/L', aliases:['triglycerides','триглицериды'] },
+  'Creatinine': { unit:'µmol/L', aliases:['creatinine','креатинин'] },
+  'Urea': { unit:'mmol/L', aliases:['urea','bun','мочевина'] },
+  'ALT': { unit:'U/L', aliases:['alt','sgpt','alanine aminotransferase','алт','аланинаминотрансфераза'] },
+  'AST': { unit:'U/L', aliases:['ast','sgot','aspartate aminotransferase','аст','аспартатаминотрансфераза'] },
+  'Total Bilirubin': { unit:'µmol/L', aliases:['bilirubin','total bilirubin','билирубин','билирубин общий'] },
+  'TSH': { unit:'mIU/L', aliases:['tsh','thyroid stimulating hormone','ттг'] },
+  'HbA1c': { unit:'%', aliases:['hba1c','a1c','glycated hemoglobin','гликированный гемоглобин'] },
+  'Vitamin D': { unit:'ng/mL', aliases:['vitamin d','25-oh vitamin d','витамин д','витамин d'] },
+  'Ferritin': { unit:'ng/mL', aliases:['ferritin','ферритин'] },
+  'C-Reactive Protein': { unit:'mg/L', aliases:['crp','c-reactive protein','срб','с-реактивный белок'] },
+  'Sodium': { unit:'mmol/L', aliases:['sodium','натрий'] },
+  'Potassium': { unit:'mmol/L', aliases:['potassium','калий'] },
+  'Calcium': { unit:'mmol/L', aliases:['calcium','кальций'] }
+};
+
+function titleCase(s){
+  return s.replace(/\w\S*/g, t=> t.charAt(0).toUpperCase()+t.slice(1).toLowerCase());
+}
+
+function canonicalizeMarkerName(rawName){
+  const norm = rawName.toLowerCase().trim().replace(/[.,;:]+$/,'');
+  for(const canon in MARKER_DICTIONARY){
+    const entry = MARKER_DICTIONARY[canon];
+    const hit = entry.aliases.some(a => norm===a || (a.length>=4 && norm.includes(a)));
+    if(hit) return { canonical:canon, unitHint:entry.unit };
+  }
+  return null;
+}
+
+function detectDocDate(text){
+  let m = text.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+  if(m){
+    const mo=String(m[2]).padStart(2,'0'), d=String(m[3]).padStart(2,'0');
+    if(+mo<=12 && +d<=31) return `${m[1]}-${mo}-${d}`;
+  }
+  m = text.match(/(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{4})/);
+  if(m){
+    const d=String(m[1]).padStart(2,'0'), mo=String(m[2]).padStart(2,'0');
+    if(+mo<=12 && +d<=31) return `${m[3]}-${mo}-${d}`;
+  }
+  return null;
+}
+
+function parseLabLine(rawLine){
+  let line = (rawLine||'').trim();
+  if(!line || line.length < 4) return null;
+  if(!/\d/.test(line)) return null;
+
+  let low = '', high = '';
+  const rangeMatch = line.match(/[\(\[]?\s*(\d{1,4}(?:[.,]\d{1,3})?)\s*[-–—]\s*(\d{1,4}(?:[.,]\d{1,3})?)\s*[\)\]]?/);
+  let workingLine = line;
+  if(rangeMatch){
+    low = rangeMatch[1].replace(',', '.');
+    high = rangeMatch[2].replace(',', '.');
+    workingLine = line.slice(0, rangeMatch.index) + line.slice(rangeMatch.index + rangeMatch[0].length);
+  }
+
+  const nameChars = "A-Za-zА-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі";
+  const mainRe = new RegExp(`([${nameChars}][${nameChars}0-9 .,()\\/\\-]{1,60}?)[\\s:|]{1,6}(\\d{1,4}(?:[.,]\\d{1,3})?)\\s*([A-Za-zµμ%\\/0-9²³·×x\\^]{0,15})`);
+  const mainMatch = workingLine.match(mainRe);
+  if(!mainMatch) return null;
+
+  let name = mainMatch[1].trim().replace(/[\s.:\-|]+$/,'');
+  let value = parseFloat(mainMatch[2].replace(',', '.'));
+  let unit = (mainMatch[3]||'').trim();
+  if(!name || name.length < 2 || isNaN(value)) return null;
+
+  return { rawName:name, value, unit, low, high };
+}
+
+async function extractPdfText(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let text = '';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(it=>it.str).join(' ') + '\n';
+  }
+  return { text, pdf };
+}
+
+async function rasterizePdfPage(pdf, pageNum){
+  const page = await pdf.getPage(pageNum);
+  const viewport = page.getViewport({ scale: 2 });
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  return canvas;
+}
+
+async function ocrImageSource(source, langs){
+  const langString = (langs && langs.length ? langs : ['eng']).join('+');
+  const { data } = await Tesseract.recognize(source, langString);
+  return data.text;
+}
+
+async function runDocumentImport(){
+  const fileInput = document.getElementById('import-file');
+  const statusEl = document.getElementById('import-status');
+  if(!fileInput.files || !fileInput.files[0]){ toast('Please choose a file first.'); return; }
+  const file = fileInput.files[0];
+  const langs = Array.from(document.querySelectorAll('#import-langs input:checked')).map(i=>i.value);
+
+  statusEl.textContent = 'Reading file…';
+  const fileDataUrl = await fileToDataUrl(file);
+  let text = '';
+
+  try{
+    if(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')){
+      const { text: pdfText, pdf } = await extractPdfText(file);
+      text = pdfText;
+      if(text.trim().length < 40){
+        let ocrText = '';
+        for(let i=1;i<=pdf.numPages;i++){
+          statusEl.textContent = `This looks like a scanned PDF — reading page ${i} of ${pdf.numPages}…`;
+          const canvas = await rasterizePdfPage(pdf, i);
+          ocrText += await ocrImageSource(canvas, langs) + '\n';
+        }
+        text = ocrText;
+      }
+    } else {
+      statusEl.textContent = 'Running text recognition on the image, this can take a minute…';
+      text = await ocrImageSource(file, langs);
+    }
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = '';
+    toast('Could not read that file. Try a clearer photo or a different format.');
+    return;
+  }
+
+  statusEl.textContent = 'Looking for results…';
+  const docDate = detectDocDate(text) || todayStr();
+  const lines = text.split('\n');
+  const seen = new Set();
+  const matches = [];
+  lines.forEach(line=>{
+    const m = parseLabLine(line);
+    if(!m) return;
+    const key = m.rawName.toLowerCase()+':'+m.value;
+    if(seen.has(key)) return;
+    seen.add(key);
+    const canon = canonicalizeMarkerName(m.rawName);
+    matches.push({
+      ...m,
+      canonicalName: canon ? canon.canonical : titleCase(m.rawName),
+      unit: m.unit || (canon ? canon.unitHint : ''),
+      date: docDate
+    });
+  });
+
+  statusEl.textContent = matches.length
+    ? `Found ${matches.length} possible result${matches.length===1?'':'s'} — review below before adding.`
+    : 'No results detected automatically — you can still check the extracted text below and add markers manually.';
+  renderImportReview(matches, file.name, fileDataUrl, text);
+}
+
+function renderImportReview(matches, fileName, fileDataUrl, rawText){
+  const box = document.getElementById('import-review');
+  const rawTextBlock = `
+    <details style="margin-top:14px;">
+      <summary class="muted-text" style="cursor:pointer;">Show extracted text</summary>
+      <pre style="white-space:pre-wrap; font-size:0.78rem; color:var(--muted); max-height:240px; overflow:auto;">${escapeHtml(rawText.slice(0,4000))}</pre>
+    </details>
+  `;
+  if(matches.length===0){
+    box.innerHTML = `<div class="card"><div class="empty">No results detected automatically.</div>${rawTextBlock}</div>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="card">
+      <h2 class="section-title">Review before adding</h2>
+      <p class="muted-text">Double-check names, values, and units — automatic reading of documents isn't perfect, especially with handwriting or unusual layouts. Uncheck anything that looks wrong, or edit it directly.</p>
+      <div id="import-rows">
+        ${matches.map((m,i)=>`
+          <div class="list-item" data-row="${i}" style="display:block;">
+            <div class="row">
+              <div class="field" style="max-width:90px;"><label>Include</label><input type="checkbox" class="imp-include" checked style="width:auto;"></div>
+              <div class="field" style="flex:2;"><label>Marker name</label><input class="imp-name" value="${escapeHtml(m.canonicalName)}"></div>
+              <div class="field"><label>Value</label><input class="imp-value" type="number" step="any" value="${m.value}"></div>
+              <div class="field"><label>Unit</label><input class="imp-unit" value="${escapeHtml(m.unit)}"></div>
+            </div>
+            <div class="row">
+              <div class="field"><label>Healthy low</label><input class="imp-low" type="number" step="any" value="${escapeHtml(m.low)}"></div>
+              <div class="field"><label>Healthy high</label><input class="imp-high" type="number" step="any" value="${escapeHtml(m.high)}"></div>
+              <div class="field"><label>Date</label><input class="imp-date" type="date" value="${m.date}"></div>
+            </div>
+            <div class="meta">detected from: "${escapeHtml(m.rawName)}"</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="imp-save-doc" checked style="width:auto;"> Also save this file in Documents</label>
+      </div>
+      <button class="primary" id="imp-commit">Add checked results to Blood Markers</button>
+      ${rawTextBlock}
+    </div>
+  `;
+  document.getElementById('imp-commit').addEventListener('click', ()=> commitImportedReadings(fileName, fileDataUrl));
+}
+
+function commitImportedReadings(fileName, fileDataUrl){
+  const rows = document.querySelectorAll('#import-rows [data-row]');
+  let addedCount = 0;
+  rows.forEach(row=>{
+    if(!row.querySelector('.imp-include').checked) return;
+    const name = row.querySelector('.imp-name').value.trim();
+    const value = parseFloat(row.querySelector('.imp-value').value);
+    const unit = row.querySelector('.imp-unit').value.trim();
+    const low = row.querySelector('.imp-low').value;
+    const high = row.querySelector('.imp-high').value;
+    const date = row.querySelector('.imp-date').value || todayStr();
+    if(!name || isNaN(value)) return;
+
+    let marker = data.markers.find(mk=> mk.name.toLowerCase()===name.toLowerCase());
+    if(!marker){
+      marker = {id:uid(), name, unit, low, high};
+      data.markers.push(marker);
+    }
+    data.readings.push({id:uid(), markerId:marker.id, value, date, note:`Imported from ${fileName}`});
+    addedCount++;
+  });
+
+  const saveDocCheckbox = document.getElementById('imp-save-doc');
+  if(saveDocCheckbox && saveDocCheckbox.checked && fileDataUrl){
+    data.documents.push({
+      id:uid(), name:fileName, category:'Blood test result', date:todayStr(),
+      notes:'Auto-imported via document scan', fileName, fileType:'', dataUrl:fileDataUrl
+    });
+  }
+
+  saveData();
+  document.getElementById('import-review').innerHTML = '';
+  document.getElementById('import-status').textContent = '';
+  document.getElementById('import-file').value = '';
+  toast(addedCount ? `Added ${addedCount} reading${addedCount===1?'':'s'}.` : 'Nothing was added — check the boxes for rows you want to keep.');
+  renderMarkersList();
 }
 
 /* ---------------- Condition keyword rules (for food recommendations) ---------------- */
@@ -798,6 +1061,21 @@ function addWater(glasses){
 /* ---------------- Blood Markers ---------------- */
 function renderMarkers(c){
   c.innerHTML = `
+    <div class="card">
+      <h2 class="section-title">Import from a document</h2>
+      <p class="muted-text">Upload a blood test PDF or photo and I'll try to pull the results out automatically. Works best with digital PDFs that have selectable text; photos and scans use on-device text recognition (nothing leaves your browser), which is slower and can make mistakes — you'll always get a chance to review before anything is added.</p>
+      <div class="field"><label>File (PDF, JPG, or PNG)</label><input type="file" id="import-file" accept="application/pdf,image/*"></div>
+      <label style="font-weight:700; font-size:0.82rem; color:var(--muted); display:block; margin-bottom:5px;">Languages to recognize (only matters for photos/scans)</label>
+      <div class="checkbox-group" id="import-langs">
+        <label><input type="checkbox" value="eng" checked> English</label>
+        <label><input type="checkbox" value="rus" checked> Russian</label>
+        <label><input type="checkbox" value="kaz" checked> Kazakh</label>
+      </div>
+      <button class="primary" id="import-run">Extract results</button>
+      <div id="import-status" class="muted-text" style="margin-top:10px;"></div>
+    </div>
+    <div id="import-review"></div>
+
     <div class="card form-card">
       <h2 class="section-title">Add a marker to track</h2>
       <div class="row">
@@ -812,6 +1090,11 @@ function renderMarkers(c){
     </div>
     <div id="markers-list"></div>
   `;
+  document.getElementById('import-run').addEventListener('click', ()=>{
+    const btn = document.getElementById('import-run');
+    btn.disabled = true;
+    runDocumentImport().finally(()=>{ btn.disabled = false; });
+  });
   document.getElementById('mk-add').addEventListener('click', ()=>{
     const name = document.getElementById('mk-name').value.trim();
     if(!name){ toast('Please add a marker name first.'); return; }
