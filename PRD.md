@@ -1,12 +1,11 @@
 # PRD: HealthPal — Personal Health Tracker & Companion
 
 **Status:** v1.1 built and delivered (`HealthPal.html`)
-**Owner:** Mika
 **Last updated:** July 8, 2026
 
 ## 1. Summary
 
-HealthPal is a friendly, self-contained health-tracking app built for Mika and for anyone managing a health condition that requires watching blood test trends, taking medication on schedule, and being mindful of food choices. The initial trigger was Mika's own situation: blood sugar that's elevated but not yet pre-diabetic, with a desire to catch it early through better food awareness.
+HealthPal is a friendly, self-contained health-tracking app for anyone managing a health condition that requires watching blood test trends, taking medication on schedule, and being mindful of food choices. It was originally motivated by a desire to catch early warning signs in blood sugar trends through better food awareness, before they become a bigger issue.
 
 The app runs as a single HTML file with no backend or account system. All data is stored locally in the browser (localStorage) on the device where it's opened.
 
@@ -36,7 +35,7 @@ People managing an emerging or chronic health condition typically juggle three d
 
 ## 5. Target Users
 
-1. **Primary:** Mika — borderline high blood sugar, not pre-diabetic, wants to catch early warning signs through diet awareness and track lab trends over time.
+1. **Primary:** Someone with an elevated-but-not-yet-diagnosed blood sugar trend who wants to catch early warning signs through diet awareness and track lab trends over time.
 2. **Secondary:** Anyone with a condition requiring scheduled medication and/or dietary awareness (e.g., high blood pressure, high cholesterol), who wants one friendly place to track it all instead of separate apps for meds, labs, and food.
 
 ## 6. Feature Set
@@ -89,7 +88,7 @@ This is one-way and user-initiated by design — there's no live sync, so the us
 
 ## 9. Multi-Device Use
 
-Mika confirmed she plans to use HealthPal on more than one device (phone and computer). Since localStorage doesn't sync across browsers or devices, the Settings tab includes an explicit workflow: export a JSON backup from the device with the most current data, then import it on the other device. This is manual by design in v1 — there's no account system or cloud sync — and the app surfaces this clearly rather than letting the user discover a sync gap on their own.
+Multi-device use (phone and computer) was a stated requirement. Since localStorage doesn't sync across browsers or devices, the Settings tab includes an explicit workflow: export a JSON backup from the device with the most current data, then import it on the other device. This is manual by design in v1 — there's no account system or cloud sync — and the app surfaces this clearly rather than letting the user discover a sync gap on their own.
 
 ## 10. Design & Tone Guidelines
 
@@ -106,7 +105,7 @@ Mika confirmed she plans to use HealthPal on more than one device (phone and com
 
 ## 12. Open Items / Next Steps
 
-- Set up the actual Cowork scheduled-task reminders once Mika provides medication names and times.
+- Set up the actual Cowork scheduled-task reminders once medication names and times are provided.
 - Monitor whether localStorage size becomes an issue with photo/document attachments; if so, add automatic image compression and/or a file-size warning on upload.
 - Consider a future version with real AI-based food photo analysis if/when a backend or API key is introduced.
 - Revisit multi-device sync if manual export/import proves too friction-heavy in practice.
